@@ -1,0 +1,50 @@
+{
+  "name": "fifty-states",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build && tsc --noEmit",
+    "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
+  },
+  "dependencies": {
+    "@designcodeio/threeui": "^0.3.0",
+    "@tanstack/react-router": "^1.170.32",
+    "@tanstack/react-start": "^1.168.49",
+    "@tanstack/react-store": "^0.11.1",
+    "@tanstack/store": "^0.11.1",
+    "better-result": "^3.0.1",
+    "d3-geo": "^3.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.185.1",
+    "topojson-client": "^3.1.0"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.79.0",
+    "@types/d3-geo": "^3.1.1",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "0.185.0",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "@vitejs/plugin-react": "^5",
+    "nitro": "npm:nitro@latest",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
+    "typescript": "^5.7.3",
+    "vite": "^7"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
