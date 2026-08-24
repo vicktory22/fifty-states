@@ -10,6 +10,9 @@ export default defineConfig({
   plugins: [
     tanstackStart({
       srcDirectory: "src",
+      prerender: {
+        enabled: true,
+      },
     }),
     viteReact(),
     nitro(),
