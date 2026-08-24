@@ -644,10 +644,11 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
       const aspect = w / h;
       const short = h < 540;
       const narrow = w < 720;
-      const pad = mapSpan * (narrow && !short ? 0.6 : 0.52);
+      const phone = w < 480 && !short;
+      const pad = mapSpan * (phone ? 0.72 : narrow && !short ? 0.6 : 0.52);
       viewSize = pad / Math.min(Math.max(aspect, 0.42), 1);
       const panX = short && aspect > 1.2 ? viewSize * 0.2 : 0;
-      const panY = narrow && !short ? viewSize * 0.18 : 0;
+      const panY = phone ? viewSize * 0.32 : narrow && !short ? viewSize * 0.18 : 0;
       camera.left = -viewSize * aspect - panX;
       camera.right = viewSize * aspect - panX;
       camera.top = viewSize - panY;
@@ -766,17 +767,18 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
 
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.06;
+      controls.dampingFactor = 0.08;
       controls.enableRotate = false;
       controls.enablePan = true;
+      controls.panSpeed = 1.5;
       controls.screenSpacePanning = true;
       controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
       controls.touches.ONE = THREE.TOUCH.PAN;
       controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
-      controls.minDistance = span * 0.4;
+      controls.minDistance = span * 0.08;
       controls.maxDistance = span * 2.2;
       controls.minZoom = 0.55;
-      controls.maxZoom = 2.8;
+      controls.maxZoom = 12;
       const polar = 0.18;
       controls.minPolarAngle = polar;
       controls.maxPolarAngle = polar;
@@ -802,7 +804,7 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
         lockLight.intensity += ((locked ? 6 : 0) - lockLight.intensity) * 0.08;
         lockLight.target.position.copy(desiredTarget);
         lockLight.position.set(desiredTarget.x, desiredTarget.y + 8, desiredTarget.z);
-        controls.minDistance = locked ? span * 0.4 : span * 0.45;
+        controls.minDistance = locked ? span * 0.08 : span * 0.12;
 
         const now = performance.now() * 0.001;
         if (oceanMat) oceanMat.uniforms.uTime.value = now;
