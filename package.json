@@ -10,7 +10,9 @@
     "start": "node .output/server/index.mjs",
     "lint": "oxlint",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
   },
   "dependencies": {
     "@designcodeio/threeui": "^0.3.0",
@@ -39,7 +41,8 @@
     "oxfmt": "^0.64.0",
     "oxlint": "^1.79.0",
     "typescript": "^5.7.3",
-    "vite": "^7"
+    "vite": "^7",
+    "vitest": "^3.2.7"
   },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
