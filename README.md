@@ -8,4 +8,5 @@ Guess the 50 U.S. states from Census-derived outlines. Built with TanStack Start
 ```bash
 pnpm install
 pnpm dev
+pnpm test
 ```
