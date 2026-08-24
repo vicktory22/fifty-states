@@ -87,7 +87,13 @@ export function IdentifyLock({
   }, [highlighted, matches, currentGuess, used]);
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest" });
+    const row = activeRef.current;
+    const list = row?.closest(".lock-list");
+    if (!row || !list) return;
+    const rowBox = row.getBoundingClientRect();
+    const listBox = list.getBoundingClientRect();
+    if (rowBox.bottom > listBox.bottom) list.scrollTop += rowBox.bottom - listBox.bottom;
+    if (rowBox.top < listBox.top) list.scrollTop -= listBox.top - rowBox.top;
   }, [hi, highlighted]);
 
   function confirm(name?: StateName) {

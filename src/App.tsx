@@ -71,6 +71,18 @@ export function App() {
 
       <footer className="hud hud-bl">
         <div className="dock">
+          <div className="dock-stats">
+            <div className="stat">
+              <span>Named</span>
+              <b>
+                {guessedCount}
+                <span className="dim"> / 50</span>
+              </b>
+            </div>
+            <div className="meter" aria-hidden>
+              <i style={{ width: `${(guessedCount / 50) * 100}%` }} />
+            </div>
+          </div>
           <div className="dock-main">
             <button
               className="btn primary"
