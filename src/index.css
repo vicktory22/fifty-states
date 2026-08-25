@@ -299,6 +299,29 @@ h1 {
   margin-top: 1.1rem;
 }
 
+.result-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.result-card.win {
+  border-color: var(--guessed);
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.22),
+    0 30px 90px rgba(0, 0, 0, 0.55),
+    0 0 48px rgba(201, 162, 39, 0.18);
+}
+
+.result-card.win h2 {
+  color: var(--guessed);
+}
+
+.result-card.miss {
+  border-color: var(--line-dim);
+}
+
 .btn {
   appearance: none;
   border: 1px solid var(--line);

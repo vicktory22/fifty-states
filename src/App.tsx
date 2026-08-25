@@ -6,8 +6,11 @@ import {
   checkAnswers,
   clearGuess,
   confirmGuess,
+  continuePlay,
+  dismissPerfect,
   quizStore,
   resetQuiz,
+  revealHelp,
   selectState,
 } from "./quiz-store";
 import { UsMap } from "./UsMap";
@@ -17,6 +20,8 @@ export function App() {
   const truth = useSelector(quizStore, (s) => s.truth);
   const pick = useSelector(quizStore, (s) => s.pick);
   const scored = useSelector(quizStore, (s) => s.scored);
+  const firstCheckFailed = useSelector(quizStore, (s) => s.firstCheckFailed);
+  const result = useSelector(quizStore, (s) => s.result);
   const usedNames = useSelector(quizStore, (s) => new Set(Object.values(s.guesses)));
 
   const guessedCount = Object.keys(guesses).length;
@@ -66,6 +71,9 @@ export function App() {
               {score < 50 ? ` · ${50 - score} missed` : " · clean sweep"}
             </p>
           )}
+          {score === null && firstCheckFailed && result !== "miss" && (
+            <p className="stats-score">Not all correct. Keep going.</p>
+          )}
         </div>
       </div>
 
@@ -92,6 +100,11 @@ export function App() {
             >
               Check answers
             </button>
+            {firstCheckFailed && !scored && (
+              <button className="btn ghost" type="button" onClick={revealHelp}>
+                Help
+              </button>
+            )}
             <button className="btn ghost" type="button" onClick={resetQuiz}>
               Reset
             </button>
@@ -99,9 +112,11 @@ export function App() {
           <p className="dock-note">
             {scored
               ? "Answers checked"
-              : allGuessed
-                ? "Ready to check"
-                : "Name all 50 states to check"}
+              : firstCheckFailed && allGuessed
+                ? "Not all correct — keep labeling, or ask for help"
+                : allGuessed
+                  ? "Ready to check"
+                  : "Name all 50 states to check"}
           </p>
           <ul className="dock-keys">
             <li>
@@ -137,6 +152,42 @@ export function App() {
             <DiagnosticsPanel mode="dark" />
           </div>
         </aside>
+      )}
+
+      {result === "perfect" && (
+        <div className="dialog" role="dialog" aria-labelledby="result-title">
+          <div className="card result-card win">
+            <div className="kicker">Survey complete</div>
+            <h2 id="result-title">Fifty for fifty.</h2>
+            <p>Every state named. Clean sweep.</p>
+            <div className="row">
+              <button className="btn primary" type="button" onClick={dismissPerfect}>
+                Soak it in
+              </button>
+              <button className="btn ghost" type="button" onClick={resetQuiz}>
+                Play again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {result === "miss" && (
+        <div className="dialog" role="dialog" aria-labelledby="result-title">
+          <div className="card result-card miss">
+            <div className="kicker">Not yet</div>
+            <h2 id="result-title">Not all correct.</h2>
+            <p>No peek at which ones. Keep going, or ask for help.</p>
+            <div className="row">
+              <button className="btn primary" type="button" onClick={continuePlay}>
+                Continue
+              </button>
+              <button className="btn ghost" type="button" onClick={revealHelp}>
+                Help
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {pick && (

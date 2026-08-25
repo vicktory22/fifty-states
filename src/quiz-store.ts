@@ -3,11 +3,16 @@ import type { StateName } from "./states";
 
 export type PickState = { id: string; trueName: StateName };
 
+export type CheckResult = "perfect" | "miss" | null;
+
 export type QuizState = {
   guesses: Record<string, StateName>;
   truth: Record<string, StateName>;
   pick: PickState | null;
   scored: Record<string, boolean> | null;
+  /** After a failed first check, player can keep editing until they reveal. */
+  firstCheckFailed: boolean;
+  result: CheckResult;
 };
 
 export const quizStore = createStore<QuizState>({
@@ -15,7 +20,20 @@ export const quizStore = createStore<QuizState>({
   truth: {},
   pick: null,
   scored: null,
+  firstCheckFailed: false,
+  result: null,
 });
+
+function grade(guesses: Record<string, StateName>, truth: Record<string, StateName>) {
+  const scored: Record<string, boolean> = {};
+  let allRight = Object.keys(guesses).length === 50;
+  for (const id of Object.keys(guesses)) {
+    const ok = guesses[id] === truth[id];
+    scored[id] = ok;
+    if (!ok) allRight = false;
+  }
+  return { scored, allRight };
+}
 
 export function selectState(id: string, trueName: StateName) {
   quizStore.setState((s) => {
@@ -54,12 +72,35 @@ export function cancelPick() {
 
 export function checkAnswers() {
   quizStore.setState((s) => {
-    const scored: Record<string, boolean> = {};
-    for (const id of Object.keys(s.guesses)) {
-      scored[id] = s.guesses[id] === s.truth[id];
+    if (s.scored) return s;
+    const { scored, allRight } = grade(s.guesses, s.truth);
+    if (allRight) {
+      return {
+        ...s,
+        scored,
+        pick: null,
+        firstCheckFailed: false,
+        result: "perfect",
+      };
     }
-    return { ...s, scored, pick: null };
+    return { ...s, pick: null, firstCheckFailed: true, result: "miss" };
   });
+}
+
+export function continuePlay() {
+  quizStore.setState((s) => (s.result === "miss" ? { ...s, result: null } : s));
+}
+
+export function revealHelp() {
+  quizStore.setState((s) => {
+    if (s.scored || !s.firstCheckFailed) return s;
+    const { scored } = grade(s.guesses, s.truth);
+    return { ...s, scored, pick: null, result: null };
+  });
+}
+
+export function dismissPerfect() {
+  quizStore.setState((s) => (s.result === "perfect" ? { ...s, result: null } : s));
 }
 
 export function resetQuiz() {
@@ -68,5 +109,7 @@ export function resetQuiz() {
     truth: {},
     pick: null,
     scored: null,
+    firstCheckFailed: false,
+    result: null,
   }));
 }
