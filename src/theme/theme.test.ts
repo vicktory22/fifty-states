@@ -20,13 +20,7 @@ import {
   writeStoredThemeId,
 } from "./storage";
 import { THEME_IDS } from "./types";
-import {
-  getActiveTheme,
-  getThemeId,
-  resetThemeStore,
-  setThemeId,
-  themeStore,
-} from "./theme-store";
+import { getActiveTheme, getThemeId, resetThemeStore, setThemeId, themeStore } from "./theme-store";
 
 const tokyoSeed = {
   bg: "#1a1b26",
@@ -124,7 +118,6 @@ describe("registry", () => {
       "Tokyo Night",
       "Catppuccin",
       "Rosé Pine",
-      "Nord",
       "One Dark",
       "Dracula",
       "Gruvbox",
@@ -135,7 +128,7 @@ describe("registry", () => {
 
 describe("resolveThemeId", () => {
   it("prefers URL, then storage, then fallback", () => {
-    expect(resolveThemeId({ url: "nord", stored: "dracula" })).toBe("nord");
+    expect(resolveThemeId({ url: "one-dark", stored: "dracula" })).toBe("one-dark");
     expect(resolveThemeId({ url: "nope", stored: "dracula" })).toBe("dracula");
     expect(resolveThemeId({ url: "nope", stored: "also-nope" })).toBe("tokyo-night");
     expect(resolveThemeId({ url: null, stored: null, fallback: "one-dark" })).toBe("one-dark");
@@ -144,7 +137,7 @@ describe("resolveThemeId", () => {
 
 describe("validateThemeSearch", () => {
   it("keeps valid theme ids and drops invalid", () => {
-    expect(validateThemeSearch({ theme: "nord" })).toEqual({ theme: "nord" });
+    expect(validateThemeSearch({ theme: "one-dark" })).toEqual({ theme: "one-dark" });
     expect(validateThemeSearch({ theme: "nope" })).toEqual({});
     expect(validateThemeSearch({})).toEqual({});
   });
@@ -216,9 +209,9 @@ describe("persistence checklist (automated)", () => {
 
     // Valid URL wins over storage.
     rewritten.length = 0;
-    expect(hydrateThemeFromSources("nord", writer, mem)).toBe("nord");
-    expect(getThemeId()).toBe("nord");
-    expect(readStoredThemeId(mem)).toBe("nord");
+    expect(hydrateThemeFromSources("one-dark", writer, mem)).toBe("one-dark");
+    expect(getThemeId()).toBe("one-dark");
+    expect(readStoredThemeId(mem)).toBe("one-dark");
     // URL already matched — no rewrite required.
     expect(rewritten).toEqual([]);
 

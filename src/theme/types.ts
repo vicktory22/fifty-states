@@ -9,7 +9,6 @@ export const THEME_IDS = [
   "rose-pine",
   "rose-pine-moon",
   "rose-pine-dawn",
-  "nord",
   "one-dark",
   "dracula",
   "gruvbox-dark",

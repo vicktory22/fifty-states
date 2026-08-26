@@ -139,18 +139,6 @@ const ENTRIES = {
       error: "#b4637a",
     },
   },
-  nord: {
-    meta: { id: "nord", label: "Nord", family: "Nord" },
-    seed: {
-      bg: "#2e3440",
-      fg: "#eceff4",
-      accent: "#88c0d0",
-      muted: "#4c566a",
-      success: "#a3be8c",
-      warning: "#ebcb8b",
-      error: "#bf616a",
-    },
-  },
   "one-dark": {
     meta: { id: "one-dark", label: "One Dark", family: "One Dark" },
     seed: {
@@ -279,7 +267,6 @@ export const THEMES = {
   "rose-pine": buildTheme("rose-pine"),
   "rose-pine-moon": buildTheme("rose-pine-moon"),
   "rose-pine-dawn": buildTheme("rose-pine-dawn"),
-  nord: buildTheme("nord"),
   "one-dark": buildTheme("one-dark"),
   dracula: buildTheme("dracula"),
   "gruvbox-dark": buildTheme("gruvbox-dark"),

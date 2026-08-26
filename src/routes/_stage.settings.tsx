@@ -79,8 +79,7 @@ function SettingsPage() {
         </div>
 
         <p className="settings-attrib">
-          Palettes inspired by Tokyo Night, Catppuccin, Rosé Pine, Nord, One Dark, Dracula, and
-          Gruvbox.
+          Palettes inspired by Tokyo Night, Catppuccin, Rosé Pine, One Dark, Dracula, and Gruvbox.
         </p>
       </div>
     </div>
