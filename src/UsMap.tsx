@@ -6,11 +6,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { describeAtlasError, loadUsStates } from "./atlas";
 import type { StateName } from "./states";
+import type { ThemeMapColors, ThemeMapTokens } from "./theme/types";
 
 type Props = {
   guesses: Record<string, StateName>;
   selectedId: string | null;
   scored: Record<string, boolean> | null;
+  mapTheme: ThemeMapTokens;
   onSelect: (id: string, trueName: StateName) => void;
 };
 
@@ -28,20 +30,6 @@ type MeshEntry = {
   inradius: number;
   decal: THREE.Mesh | null;
   decalKey: string;
-};
-
-const COLORS = {
-  idle: 0x1c5542,
-  hover: 0x2a7a5c,
-  selected: 0x3ecf8e,
-  guessed: 0xc9a227,
-  right: 0x3ecf8e,
-  wrong: 0xc45c4a,
-  edgeIdle: 0x8fd9a8,
-  edgeSelected: 0xf4f0dc,
-  edgeGuessed: 0xffd56a,
-  edgeRight: 0x7dffc4,
-  edgeWrong: 0xff8a78,
 };
 
 const WIDTH = 960;
@@ -315,7 +303,25 @@ function polygonsOf(geometry: { type: string; coordinates?: unknown }): Ring[][]
   return [];
 }
 
-function outlineFromPolygon(polygon: Ring[], projection: GeoProjection, y: number): THREE.Line[] {
+function mixHex(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 0xff;
+  const ag = (a >> 8) & 0xff;
+  const ab = a & 0xff;
+  const br = (b >> 16) & 0xff;
+  const bg = (b >> 8) & 0xff;
+  const bb = b & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+
+function outlineFromPolygon(
+  polygon: Ring[],
+  projection: GeoProjection,
+  y: number,
+  edgeColor: number,
+): THREE.Line[] {
   const lines: THREE.Line[] = [];
   for (const ring of polygon) {
     const pts = projectRing(ring, projection);
@@ -331,7 +337,7 @@ function outlineFromPolygon(polygon: Ring[], projection: GeoProjection, y: numbe
       new THREE.Line(
         geom,
         new THREE.LineBasicMaterial({
-          color: COLORS.edgeIdle,
+          color: edgeColor,
           transparent: true,
           opacity: 0.9,
         }),
@@ -347,27 +353,29 @@ function palette(
   selectedId: string | null,
   scored: Record<string, boolean> | null,
   hoveredId: string | null,
+  colors: ThemeMapColors,
+  background: number,
 ) {
   if (scored?.[id] === true)
-    return { fill: COLORS.right, edge: COLORS.edgeRight, lift: 0.28, glow: 0.45, opacity: 1 };
+    return { fill: colors.right, edge: colors.edgeRight, lift: 0.28, glow: 0.45, opacity: 1 };
   if (scored?.[id] === false)
-    return { fill: COLORS.wrong, edge: COLORS.edgeWrong, lift: 0.28, glow: 0.4, opacity: 1 };
+    return { fill: colors.wrong, edge: colors.edgeWrong, lift: 0.28, glow: 0.4, opacity: 1 };
   const dimmed = Boolean(selectedId && selectedId !== id);
   if (selectedId === id)
-    return { fill: COLORS.selected, edge: COLORS.edgeSelected, lift: 0.34, glow: 0.42, opacity: 1 };
+    return { fill: colors.selected, edge: colors.edgeSelected, lift: 0.34, glow: 0.42, opacity: 1 };
   if (guesses[id])
     return {
-      fill: COLORS.guessed,
-      edge: COLORS.edgeGuessed,
+      fill: colors.guessed,
+      edge: colors.edgeGuessed,
       lift: 0.38,
       glow: dimmed ? 0.08 : 0.38,
       opacity: dimmed ? 0.5 : 1,
     };
   if (hoveredId === id)
-    return { fill: COLORS.hover, edge: COLORS.edgeIdle, lift: 0.34, glow: 0.42, opacity: 1 };
+    return { fill: colors.hover, edge: colors.edgeIdle, lift: 0.34, glow: 0.42, opacity: 1 };
   return {
-    fill: dimmed ? 0x123028 : COLORS.idle,
-    edge: dimmed ? 0x2a4a3c : COLORS.edgeIdle,
+    fill: dimmed ? mixHex(colors.idle, background, 0.55) : colors.idle,
+    edge: dimmed ? mixHex(colors.edgeIdle, background, 0.45) : colors.edgeIdle,
     lift: 0,
     glow: dimmed ? 0.04 : 0.06,
     opacity: dimmed ? 0.5 : 1,
@@ -465,23 +473,30 @@ function makeNameDecal(text: string, color: number, inradius: number): THREE.Mes
   return mesh;
 }
 
-export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
+export function UsMap({ guesses, selectedId, scored, mapTheme, onSelect }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const guessesRef = useRef(guesses);
   const selectedRef = useRef(selectedId);
   const scoredRef = useRef(scored);
   const onSelectRef = useRef(onSelect);
+  const mapThemeRef = useRef(mapTheme);
   guessesRef.current = guesses;
   selectedRef.current = selectedId;
   scoredRef.current = scored;
   onSelectRef.current = onSelect;
+  mapThemeRef.current = mapTheme;
 
   const applyRef = useRef<(hoveredId: string | null) => void>(() => {});
+  const applySceneThemeRef = useRef<(theme: ThemeMapTokens) => void>(() => {});
 
   useEffect(() => {
     applyRef.current(null);
   }, [guesses, selectedId, scored]);
+
+  useEffect(() => {
+    applySceneThemeRef.current(mapTheme);
+  }, [mapTheme]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -492,8 +507,9 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
     let raf = 0;
     const entries = new Map<string, MeshEntry>();
 
+    const initialTheme = mapThemeRef.current;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x06080a);
+    scene.background = new THREE.Color(initialTheme.background);
     let oceanMat: THREE.ShaderMaterial | undefined;
     let oceanLand: THREE.Texture | undefined;
 
@@ -505,15 +521,19 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
     const root = new THREE.Group();
     scene.add(root);
 
-    const hemi = new THREE.HemisphereLight(0xc8d4c8, 0x0a0c18, 0.68);
+    const hemi = new THREE.HemisphereLight(
+      initialTheme.lights.hemiSky,
+      initialTheme.lights.hemiGround,
+      0.68,
+    );
     scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xfff3d0, 1.35);
+    const key = new THREE.DirectionalLight(initialTheme.lights.key, 1.35);
     key.position.set(-16, 18, 14);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0x6ea8ff, 0.4);
+    const rim = new THREE.DirectionalLight(initialTheme.lights.rim, 0.4);
     rim.position.set(12, 10, -12);
     scene.add(rim);
-    const lockLight = new THREE.SpotLight(0x7dffc4, 0, 22, 0.22, 0.45, 1.1);
+    const lockLight = new THREE.SpotLight(initialTheme.lights.lock, 0, 22, 0.22, 0.45, 1.1);
     lockLight.position.set(0, 10, 0);
     scene.add(lockLight);
     scene.add(lockLight.target);
@@ -527,6 +547,7 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
 
     function apply(nextHover: string | null) {
       hoveredId = nextHover;
+      const theme = mapThemeRef.current;
       for (const entry of entries.values()) {
         const pal = palette(
           entry.id,
@@ -534,6 +555,8 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
           selectedRef.current,
           scoredRef.current,
           hoveredId,
+          theme.colors,
+          theme.background,
         );
         entry.targetLift = pal.lift;
         for (const mesh of entry.meshes) {
@@ -563,12 +586,12 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
         } else {
           const tone =
             scoredRef.current?.[entry.id] === true
-              ? COLORS.right
+              ? theme.colors.right
               : scoredRef.current?.[entry.id] === false
-                ? COLORS.wrong
-                : 0xf4ead0;
-          const key = `${guessName}|${tone}|h`;
-          if (entry.decalKey !== key) {
+                ? theme.colors.wrong
+                : theme.decalUnscored;
+          const decalKey = `${guessName}|${tone}|h`;
+          if (entry.decalKey !== decalKey) {
             if (entry.decal) {
               entry.group.remove(entry.decal);
               disposeDecal(entry.decal);
@@ -577,10 +600,10 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
             decal.position.copy(entry.labelAnchor);
             entry.group.add(decal);
             entry.decal = decal;
-            entry.decalKey = key;
+            entry.decalKey = decalKey;
           }
           if (entry.decal) {
-            // SAFETY: decals use a single MeshStandardMaterial.
+            // SAFETY: decals use a single MeshBasicMaterial.
             const dm = entry.decal.material as THREE.MeshBasicMaterial;
             dm.opacity = pal.opacity;
           }
@@ -596,6 +619,24 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
       }
     }
     applyRef.current = apply;
+
+    function applySceneTheme(theme: ThemeMapTokens) {
+      mapThemeRef.current = theme;
+      scene.background = new THREE.Color(theme.background);
+      renderer?.setClearColor(theme.background, 1);
+      hemi.color.setHex(theme.lights.hemiSky);
+      hemi.groundColor.setHex(theme.lights.hemiGround);
+      key.color.setHex(theme.lights.key);
+      rim.color.setHex(theme.lights.rim);
+      lockLight.color.setHex(theme.lights.lock);
+      if (oceanMat) {
+        oceanMat.uniforms.uDeep.value.setHex(theme.ocean.deep);
+        oceanMat.uniforms.uMid.value.setHex(theme.ocean.mid);
+        oceanMat.uniforms.uFog.value.setHex(theme.ocean.fog);
+      }
+      apply(hoveredId);
+    }
+    applySceneThemeRef.current = applySceneTheme;
 
     function pick(clientX: number, clientY: number): MeshEntry | null {
       if (!renderer) return null;
@@ -706,11 +747,12 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
           if (!profile) continue;
           const geom = new THREE.ExtrudeGeometry(profile, extrude);
           geom.rotateX(-Math.PI / 2);
+          const idle = mapThemeRef.current.colors.idle;
           const mat = new THREE.MeshStandardMaterial({
-            color: COLORS.idle,
+            color: idle,
             metalness: 0.08,
             roughness: 0.86,
-            emissive: COLORS.idle,
+            emissive: idle,
             emissiveIntensity: 0.04,
             transparent: true,
             polygonOffset: true,
@@ -721,7 +763,12 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
           mesh.userData = { id, name };
           group.add(mesh);
           meshes.push(mesh);
-          for (const line of outlineFromPolygon(polygon, projection, extrude.depth + 0.012)) {
+          for (const line of outlineFromPolygon(
+            polygon,
+            projection,
+            extrude.depth + 0.012,
+            mapThemeRef.current.colors.edgeIdle,
+          )) {
             group.add(line);
             lines.push(line);
           }
@@ -755,10 +802,14 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
       scene.add(ocean.mesh);
       oceanMat = ocean.mat;
       oceanLand = ocean.landTex;
+      const oceanTheme = mapThemeRef.current.ocean;
+      oceanMat.uniforms.uDeep.value.setHex(oceanTheme.deep);
+      oceanMat.uniforms.uMid.value.setHex(oceanTheme.mid);
+      oceanMat.uniforms.uFog.value.setHex(oceanTheme.fog);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x06080a, 1);
+      renderer.setClearColor(mapThemeRef.current.background, 1);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.15;
       host.appendChild(renderer.domElement);
@@ -831,6 +882,7 @@ export function UsMap({ guesses, selectedId, scored, onSelect }: Props) {
       cancelAnimationFrame(raf);
       ro.disconnect();
       applyRef.current = () => {};
+      applySceneThemeRef.current = () => {};
       oceanLand?.dispose();
       controls?.dispose();
       if (renderer) {
