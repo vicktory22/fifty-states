@@ -55,7 +55,7 @@ export const STATE_NAMES = [
 export type StateName = (typeof STATE_NAMES)[number];
 
 /** USPS two-letter codes. */
-export const STATE_ABBR: Record<StateName, string> = {
+export const STATE_ABBR = {
   Alabama: "AL",
   Alaska: "AK",
   Arizona: "AZ",
@@ -106,7 +106,7 @@ export const STATE_ABBR: Record<StateName, string> = {
   "West Virginia": "WV",
   Wisconsin: "WI",
   Wyoming: "WY",
-};
+} satisfies Record<StateName, string>;
 
 const STATE_SET = new Set<string>(STATE_NAMES);
 
