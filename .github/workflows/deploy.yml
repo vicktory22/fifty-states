@@ -33,10 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: stage
-      url: https://stage.fifty-states.pages.dev
-    permissions:
-      contents: read
-      deployments: write
+      url: https://stage.fifty-states-d1e.pages.dev
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -48,17 +45,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=fifty-states --branch stage --commit-hash=${{ github.sha }} --commit-message=${{ github.sha }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   production:
     needs: stage
     runs-on: ubuntu-latest
     environment:
-      name: production
-      url: https://fifty-states.pages.dev
-    permissions:
-      contents: read
-      deployments: write
+      name: prod
+      url: https://fifty-states-d1e.pages.dev
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -70,4 +63,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=fifty-states --branch main --commit-hash=${{ github.sha }} --commit-message=${{ github.sha }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
