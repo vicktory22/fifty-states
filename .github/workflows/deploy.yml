@@ -1,0 +1,73 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: pages-main
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: .output/public
+          include-hidden-files: true
+          retention-days: 7
+
+  stage:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: stage
+      url: https://stage.fifty-states.pages.dev
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist
+      - name: Deploy stage
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=fifty-states --branch stage --commit-hash=${{ github.sha }} --commit-message=${{ github.sha }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  production:
+    needs: stage
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://fifty-states.pages.dev
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist
+      - name: Deploy production
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=fifty-states --branch main --commit-hash=${{ github.sha }} --commit-message=${{ github.sha }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
