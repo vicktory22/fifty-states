@@ -1,4 +1,5 @@
 import { DiagnosticsPanel } from "@designcodeio/threeui";
+import { Link } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
 import { IdentifyLock } from "./IdentifyLock";
 import {
@@ -11,17 +12,20 @@ import {
   quizStore,
   resetQuiz,
   revealHelp,
-  selectState,
 } from "./quiz-store";
-import { UsMap } from "./UsMap";
+import { getTheme } from "./theme/registry";
+import { themeStore } from "./theme/theme-store";
 
-export function App() {
+/** Game HUD / dialogs. Map lives in the `_stage` layout so it survives `/settings`. */
+export function GameHud() {
   const guesses = useSelector(quizStore, (s) => s.guesses);
   const truth = useSelector(quizStore, (s) => s.truth);
   const pick = useSelector(quizStore, (s) => s.pick);
   const scored = useSelector(quizStore, (s) => s.scored);
   const firstCheckFailed = useSelector(quizStore, (s) => s.firstCheckFailed);
   const result = useSelector(quizStore, (s) => s.result);
+  const themeId = useSelector(themeStore, (s) => s.id);
+  const threeUiMode = getTheme(themeId).threeUiMode;
   const usedNames = useSelector(quizStore, (s) => new Set(Object.values(s.guesses)));
 
   const guessedCount = Object.keys(guesses).length;
@@ -35,13 +39,10 @@ export function App() {
     : [];
 
   return (
-    <div className="stage">
-      <UsMap
-        guesses={guesses}
-        selectedId={pick?.id ?? null}
-        scored={scored}
-        onSelect={selectState}
-      />
+    <>
+      <Link to="/settings" search={true} className="hud hud-tr theme-entry btn ghost">
+        Theme
+      </Link>
 
       <header className="hud hud-tl">
         <div className="kicker">United States</div>
@@ -149,7 +150,7 @@ export function App() {
             </ul>
           )}
           <div className="diag">
-            <DiagnosticsPanel mode="dark" />
+            <DiagnosticsPanel mode={threeUiMode} />
           </div>
         </aside>
       )}
@@ -200,6 +201,6 @@ export function App() {
           onClear={clearGuess}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -9,50 +9,91 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as StageRouteImport } from './routes/_stage'
+import { Route as StageIndexRouteImport } from './routes/_stage.index'
+import { Route as StageSettingsRouteImport } from './routes/_stage.settings'
 
-const IndexRoute = IndexRouteImport.update({
+const StageRoute = StageRouteImport.update({
+  id: '/_stage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StageIndexRoute = StageIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => StageRoute,
+} as any)
+const StageSettingsRoute = StageSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => StageRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof StageIndexRoute
+  '/settings': typeof StageSettingsRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/settings': typeof StageSettingsRoute
+  '/': typeof StageIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_stage': typeof StageRouteWithChildren
+  '/_stage/settings': typeof StageSettingsRoute
+  '/_stage/': typeof StageIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/settings' | '/'
+  id: '__root__' | '/_stage' | '/_stage/settings' | '/_stage/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  StageRoute: typeof StageRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_stage': {
+      id: '/_stage'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof StageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_stage/': {
+      id: '/_stage/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof StageIndexRouteImport
+      parentRoute: typeof StageRoute
+    }
+    '/_stage/settings': {
+      id: '/_stage/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof StageSettingsRouteImport
+      parentRoute: typeof StageRoute
     }
   }
 }
 
+interface StageRouteChildren {
+  StageSettingsRoute: typeof StageSettingsRoute
+  StageIndexRoute: typeof StageIndexRoute
+}
+
+const StageRouteChildren: StageRouteChildren = {
+  StageSettingsRoute: StageSettingsRoute,
+  StageIndexRoute: StageIndexRoute,
+}
+
+const StageRouteWithChildren = StageRoute._addFileChildren(StageRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  StageRoute: StageRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
