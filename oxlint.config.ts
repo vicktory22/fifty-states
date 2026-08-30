@@ -11,6 +11,7 @@ export default {
     ".pi/**",
     ".roo/**",
     ".windsurf/**",
+    "src/routeTree.gen.ts",
     "tools/oxlint/anti-slop/**",
   ],
   jsPlugins: [{ name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" }],
