@@ -1,6 +1,7 @@
 import { DiagnosticsPanel } from "@designcodeio/threeui";
 import { Link } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
+import { useCallback } from "react";
 import { IdentifyLock } from "./IdentifyLock";
 import {
   cancelPick,
@@ -8,16 +9,24 @@ import {
   clearGuess,
   confirmGuess,
   continuePlay,
+  confirmPendingModeSwitch,
+  dismissModeSwitchBlocked,
   dismissPerfect,
+  expectedLabel,
   quizStore,
+  requestMode,
   resetQuiz,
   revealHelp,
+  type QuizMode,
 } from "./quiz-store";
+import { rankCapitals, rankStates } from "./state-search";
 import { getTheme } from "./theme/registry";
 import { themeStore } from "./theme/theme-store";
 
 /** Game HUD / dialogs. Map lives in the `_stage` layout so it survives `/settings`. */
 export function GameHud() {
+  const mode = useSelector(quizStore, (s) => s.mode);
+  const pendingMode = useSelector(quizStore, (s) => s.pendingMode);
   const guesses = useSelector(quizStore, (s) => s.guesses);
   const truth = useSelector(quizStore, (s) => s.truth);
   const pick = useSelector(quizStore, (s) => s.pick);
@@ -28,15 +37,28 @@ export function GameHud() {
   const threeUiMode = getTheme(themeId).threeUiMode;
   const usedNames = useSelector(quizStore, (s) => new Set(Object.values(s.guesses)));
 
+  const rank = useCallback(
+    (query: string) => (mode === "capitals" ? rankCapitals(query) : rankStates(query)),
+    [mode],
+  );
+
   const guessedCount = Object.keys(guesses).length;
   const allGuessed = guessedCount === 50;
   const score = scored ? Object.values(scored).filter(Boolean).length : null;
+  const labelNouns = mode === "capitals" ? "capitals" : "states";
 
   const misses = scored
     ? Object.entries(scored)
         .filter(([, ok]) => !ok)
-        .map(([id]) => ({ guess: guesses[id], actual: truth[id] }))
+        .map(([id]) => ({
+          guess: guesses[id],
+          actual: expectedLabel(mode, truth[id]),
+        }))
     : [];
+
+  function onModeClick(next: QuizMode) {
+    requestMode(next);
+  }
 
   return (
     <>
@@ -46,11 +68,30 @@ export function GameHud() {
 
       <header className="hud hud-tl">
         <div className="kicker">United States</div>
-        <h1>Label every state.</h1>
+        <h1>{mode === "capitals" ? "Name every capital." : "Label every state."}</h1>
         <p className="lede">
-          Click a state, type its name. Drag to pan, scroll to zoom. Fill the map, then check your
-          answers.
+          {mode === "capitals"
+            ? "Click a state, type its capital city. Drag to pan, scroll to zoom. Fill the map, then check your answers."
+            : "Click a state, type its name. Drag to pan, scroll to zoom. Fill the map, then check your answers."}
         </p>
+        <div className="mode-toggle" role="group" aria-label="Quiz mode">
+          <button
+            type="button"
+            className={`mode-toggle-btn${mode === "states" ? " is-active" : ""}`}
+            aria-pressed={mode === "states"}
+            onClick={() => onModeClick("states")}
+          >
+            States
+          </button>
+          <button
+            type="button"
+            className={`mode-toggle-btn${mode === "capitals" ? " is-active" : ""}`}
+            aria-pressed={mode === "capitals"}
+            onClick={() => onModeClick("capitals")}
+          >
+            Capitals
+          </button>
+        </div>
       </header>
 
       <div className="hud hud-bm">
@@ -114,10 +155,10 @@ export function GameHud() {
             {scored
               ? "Answers checked"
               : firstCheckFailed && allGuessed
-                ? "Not all correct — keep labeling, or ask for help"
+                ? `Not all correct — keep labeling, or ask for help`
                 : allGuessed
                   ? "Ready to check"
-                  : "Name all 50 states to check"}
+                  : `Name all 50 ${labelNouns} to check`}
           </p>
           <ul className="dock-keys">
             <li>
@@ -160,7 +201,11 @@ export function GameHud() {
           <div className="card result-card win">
             <div className="kicker">Survey complete</div>
             <h2 id="result-title">Fifty for fifty.</h2>
-            <p>Every state named. Clean sweep.</p>
+            <p>
+              {mode === "capitals"
+                ? "Every capital named. Clean sweep."
+                : "Every state named. Clean sweep."}
+            </p>
             <div className="row">
               <button className="btn primary" type="button" onClick={dismissPerfect}>
                 Soak it in
@@ -191,11 +236,38 @@ export function GameHud() {
         </div>
       )}
 
+      {pendingMode && (
+        <div className="dialog" role="dialog" aria-labelledby="mode-block-title">
+          <div className="card result-card miss">
+            <div className="kicker">Switch modes?</div>
+            <h2 id="mode-block-title">Cancel this quiz?</h2>
+            <p>
+              Switching to {pendingMode === "capitals" ? "capitals" : "states"} clears your current
+              labels. Cancel and switch, or keep playing.
+            </p>
+            <div className="row">
+              <button
+                className="btn primary"
+                type="button"
+                onClick={() => confirmPendingModeSwitch()}
+              >
+                Cancel & switch
+              </button>
+              <button className="btn ghost" type="button" onClick={dismissModeSwitchBlocked}>
+                Keep playing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pick && (
         <IdentifyLock
           resetKey={pick.id}
+          title={mode === "capitals" ? "Which capital?" : "Which state?"}
           used={usedNames}
           currentGuess={guesses[pick.id]}
+          rank={rank}
           onConfirm={confirmGuess}
           onCancel={cancelPick}
           onClear={clearGuess}
