@@ -1,19 +1,25 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { STATE_NAMES } from "./states";
+import { createMemoryQuizModeStorage, QUIZ_MODE_STORAGE_KEY } from "./quiz-mode-storage";
+import { STATE_CAPITALS, STATE_NAMES } from "./states";
 import {
   cancelPick,
   checkAnswers,
   clearGuess,
   confirmGuess,
   continuePlay,
+  confirmPendingModeSwitch,
+  dismissModeSwitchBlocked,
+  expectedLabel,
   quizStore,
+  requestMode,
   resetQuiz,
+  resetQuizStore,
   revealHelp,
   selectState,
 } from "./quiz-store";
 
 beforeEach(() => {
-  resetQuiz();
+  resetQuizStore(undefined, "states");
 });
 
 describe("quizStore", () => {
@@ -52,7 +58,7 @@ describe("quizStore", () => {
   });
 
   it("first check of all 50 correct celebrates", () => {
-    const guesses: Record<string, (typeof STATE_NAMES)[number]> = {};
+    const guesses: Record<string, string> = {};
     const truth: Record<string, (typeof STATE_NAMES)[number]> = {};
     STATE_NAMES.forEach((name, i) => {
       guesses[String(i)] = name;
@@ -119,5 +125,93 @@ describe("quizStore", () => {
     selectState("48", "Texas");
     expect(quizStore.state.pick).toBeNull();
     expect(quizStore.state.truth["48"]).toBeUndefined();
+  });
+
+  it("reset keeps the current mode", () => {
+    const storage = createMemoryQuizModeStorage();
+    expect(requestMode("capitals", storage)).toBe("ok");
+    selectState("06", "California");
+    confirmGuess("Sacramento");
+    resetQuiz();
+    expect(quizStore.state.mode).toBe("capitals");
+    expect(quizStore.state.guesses).toEqual({});
+    expect(storage.getItem(QUIZ_MODE_STORAGE_KEY)).toBe("capitals");
+  });
+});
+
+describe("quiz mode switching", () => {
+  it("switches and persists when the board is fresh", () => {
+    const storage = createMemoryQuizModeStorage();
+    expect(requestMode("capitals", storage)).toBe("ok");
+    expect(quizStore.state.mode).toBe("capitals");
+    expect(storage.getItem(QUIZ_MODE_STORAGE_KEY)).toBe("capitals");
+    expect(requestMode("capitals", storage)).toBe("same");
+  });
+
+  it("blocks switching while a quiz is in progress", () => {
+    const storage = createMemoryQuizModeStorage();
+    selectState("06", "California");
+    confirmGuess("California");
+    selectState("48", "Texas");
+    expect(requestMode("capitals", storage)).toBe("blocked");
+    expect(quizStore.state.mode).toBe("states");
+    expect(quizStore.state.pendingMode).toBe("capitals");
+    expect(quizStore.state.pick).toBeNull();
+    expect(quizStore.state.guesses).toEqual({ "06": "California" });
+    expect(storage.getItem(QUIZ_MODE_STORAGE_KEY)).toBeNull();
+
+    dismissModeSwitchBlocked();
+    expect(quizStore.state.pendingMode).toBeNull();
+    expect(quizStore.state.mode).toBe("states");
+    expect(quizStore.state.guesses).toEqual({ "06": "California" });
+  });
+
+  it("cancel and switch clears progress and changes mode", () => {
+    const storage = createMemoryQuizModeStorage();
+    selectState("06", "California");
+    confirmGuess("California");
+    expect(requestMode("capitals", storage)).toBe("blocked");
+    confirmPendingModeSwitch(storage);
+    expect(quizStore.state.mode).toBe("capitals");
+    expect(quizStore.state.pendingMode).toBeNull();
+    expect(quizStore.state.guesses).toEqual({});
+    expect(storage.getItem(QUIZ_MODE_STORAGE_KEY)).toBe("capitals");
+  });
+
+  it("hydrates mode from storage via resetQuizStore", () => {
+    const storage = createMemoryQuizModeStorage({
+      [QUIZ_MODE_STORAGE_KEY]: "capitals",
+    });
+    resetQuizStore(storage);
+    expect(quizStore.state.mode).toBe("capitals");
+  });
+});
+
+describe("capitals grading", () => {
+  beforeEach(() => {
+    resetQuizStore(undefined, "capitals");
+  });
+
+  it("grades capital guesses against STATE_CAPITALS", () => {
+    selectState("06", "California");
+    confirmGuess("Sacramento");
+    selectState("48", "Texas");
+    confirmGuess("Houston");
+    checkAnswers();
+    revealHelp();
+    expect(quizStore.state.scored).toEqual({ "06": true, "48": false });
+    expect(expectedLabel("capitals", "Texas")).toBe(STATE_CAPITALS.Texas);
+  });
+
+  it("celebrates fifty correct capitals", () => {
+    const guesses: Record<string, string> = {};
+    const truth: Record<string, (typeof STATE_NAMES)[number]> = {};
+    STATE_NAMES.forEach((name, i) => {
+      guesses[String(i)] = STATE_CAPITALS[name];
+      truth[String(i)] = name;
+    });
+    quizStore.setState((s) => ({ ...s, mode: "capitals", guesses, truth }));
+    checkAnswers();
+    expect(quizStore.state.result).toBe("perfect");
   });
 });

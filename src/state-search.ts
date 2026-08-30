@@ -1,4 +1,4 @@
-import { STATE_ABBR, STATE_NAMES, type StateName } from "./states";
+import { CAPITAL_NAMES, STATE_ABBR, STATE_NAMES, type CapitalName, type StateName } from "./states";
 
 /** Subsequence match with bonuses for consecutive runs, word starts, and earlier hits. */
 function subsequenceScore(query: string, text: string): number | null {
@@ -44,12 +44,11 @@ function typoScore(query: string, text: string): number | null {
   return best;
 }
 
-function fuzzyScore(query: string, name: StateName): number | null {
+/** Fuzzy score against a display name (no USPS abbr bonus). */
+function nameFuzzyScore(query: string, name: string): number | null {
   const text = name.toLowerCase();
-  const abbr = STATE_ABBR[name].toLowerCase();
   const compact = text.replaceAll(" ", "");
 
-  if (query.length === 2 && query === abbr) return 2000;
   if (text.startsWith(query)) return 1200 + query.length * 12 - text.length;
   for (const word of text.split(" ")) {
     if (word.startsWith(query)) return 1000 + query.length * 12 - word.length;
@@ -65,16 +64,35 @@ function fuzzyScore(query: string, name: StateName): number | null {
   return typoScore(query, text);
 }
 
-/** Rank official state names for the identify picker. */
-export function rankStates(query: string): StateName[] {
+function stateFuzzyScore(query: string, name: StateName): number | null {
+  const abbr = STATE_ABBR[name].toLowerCase();
+  if (query.length === 2 && query === abbr) return 2000;
+  return nameFuzzyScore(query, name);
+}
+
+function rankNames<T extends string>(
+  query: string,
+  names: readonly T[],
+  scoreOf: (q: string, name: T) => number | null,
+): T[] {
   const q = query.trim().toLowerCase();
-  if (!q) return [...STATE_NAMES];
-  const ranked: { name: StateName; score: number }[] = [];
-  for (const name of STATE_NAMES) {
-    const score = fuzzyScore(q, name);
+  if (!q) return [...names];
+  const ranked: { name: T; score: number }[] = [];
+  for (const name of names) {
+    const score = scoreOf(q, name);
     if (score === null) continue;
     ranked.push({ name, score });
   }
   ranked.sort((a, b) => b.score - a.score);
   return ranked.map((row) => row.name);
+}
+
+/** Rank official state names for the identify picker. */
+export function rankStates(query: string): StateName[] {
+  return rankNames(query, STATE_NAMES, stateFuzzyScore);
+}
+
+/** Rank official capital city names for the identify picker. */
+export function rankCapitals(query: string): CapitalName[] {
+  return rankNames(query, CAPITAL_NAMES, nameFuzzyScore);
 }

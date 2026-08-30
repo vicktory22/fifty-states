@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { rankStates } from "./state-search";
-import type { StateName } from "./states";
 
 type Props = {
   resetKey: string;
+  title: string;
   used: Set<string>;
-  currentGuess?: StateName;
-  onConfirm: (name: StateName) => void;
+  currentGuess?: string;
+  rank: (query: string) => string[];
+  onConfirm: (name: string) => void;
   onCancel: () => void;
   onClear: () => void;
 };
 
 export function IdentifyLock({
   resetKey,
+  title,
   used,
   currentGuess,
+  rank,
   onConfirm,
   onCancel,
   onClear,
@@ -40,11 +42,9 @@ export function IdentifyLock({
     return () => window.removeEventListener("keydown", onDocKey, true);
   }, [onCancel]);
 
-  const matches = useMemo(() => {
-    return rankStates(query);
-  }, [query]);
+  const matches = useMemo(() => rank(query), [query, rank]);
 
-  function isTaken(name: StateName): boolean {
+  function isTaken(name: string): boolean {
     return used.has(name) && name !== currentGuess;
   }
 
@@ -67,7 +67,7 @@ export function IdentifyLock({
     if (rowBox.top < listBox.top) list.scrollTop -= listBox.top - rowBox.top;
   }, [hi, highlighted]);
 
-  function confirm(name?: StateName) {
+  function confirm(name?: string) {
     const pick = name ?? highlighted;
     if (!pick || isTaken(pick)) return;
     onConfirm(pick);
@@ -107,13 +107,13 @@ export function IdentifyLock({
     <div
       className="lock-veil"
       role="dialog"
-      aria-label="Identify this state"
+      aria-label={title}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
       <div className="lock-panel">
-        <p className="kicker">Which state?</p>
+        <p className="kicker">{title}</p>
         <div className={`lock-field${currentGuess ? " has-clear" : ""}`}>
           <input
             ref={inputRef}

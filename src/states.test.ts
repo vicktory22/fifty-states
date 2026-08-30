@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isUsState, STATE_ABBR, STATE_NAMES } from "./states";
+import { CAPITAL_NAMES, isUsState, STATE_ABBR, STATE_CAPITALS, STATE_NAMES } from "./states";
 
 describe("states", () => {
   it("lists 50 unique official names", () => {
@@ -13,6 +13,15 @@ describe("states", () => {
     expect(new Set(codes).size).toBe(50);
     for (const code of codes) {
       expect(code).toMatch(/^[A-Z]{2}$/);
+    }
+  });
+
+  it("maps every state to a unique capital city", () => {
+    expect(CAPITAL_NAMES).toHaveLength(50);
+    expect(new Set(CAPITAL_NAMES).size).toBe(50);
+    for (const name of STATE_NAMES) {
+      expect(STATE_CAPITALS[name].length).toBeGreaterThan(0);
+      expect(CAPITAL_NAMES).toContain(STATE_CAPITALS[name]);
     }
   });
 

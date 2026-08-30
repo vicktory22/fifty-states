@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { rankStates } from "./state-search";
-import { STATE_NAMES } from "./states";
+import { rankCapitals, rankStates } from "./state-search";
+import { CAPITAL_NAMES, STATE_NAMES } from "./states";
 
 describe("rankStates", () => {
   it("returns every state when the query is empty", () => {
@@ -38,5 +38,36 @@ describe("rankStates", () => {
 
   it("omits states that do not match", () => {
     expect(rankStates("zzzz")).toEqual([]);
+  });
+});
+
+describe("rankCapitals", () => {
+  it("returns every capital when the query is empty", () => {
+    expect(rankCapitals("")).toEqual([...CAPITAL_NAMES]);
+    expect(rankCapitals("   ")).toEqual([...CAPITAL_NAMES]);
+  });
+
+  it("ranks capital name prefixes first", () => {
+    expect(rankCapitals("sacr")[0]).toBe("Sacramento");
+    expect(rankCapitals("bost")[0]).toBe("Boston");
+    expect(rankCapitals("salt")[0]).toBe("Salt Lake City");
+  });
+
+  it("matches a later word prefix", () => {
+    expect(rankCapitals("rouge")[0]).toBe("Baton Rouge");
+    expect(rankCapitals("paul")[0]).toBe("Saint Paul");
+  });
+
+  it("matches compact multi-word names", () => {
+    expect(rankCapitals("oklahomacity")[0]).toBe("Oklahoma City");
+  });
+
+  it("still finds a capital after one extra letter or swap", () => {
+    expect(rankCapitals("sacrametno")).toContain("Sacramento");
+    expect(rankCapitals("baton ruoge")).toContain("Baton Rouge");
+  });
+
+  it("omits capitals that do not match", () => {
+    expect(rankCapitals("zzzz")).toEqual([]);
   });
 });

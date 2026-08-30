@@ -9,7 +9,7 @@ import type { StateName } from "./states";
 import type { ThemeMapColors, ThemeMapTokens } from "./theme/types";
 
 type Props = {
-  guesses: Record<string, StateName>;
+  guesses: Record<string, string>;
   selectedId: string | null;
   scored: Record<string, boolean> | null;
   mapTheme: ThemeMapTokens;
@@ -349,7 +349,7 @@ function outlineFromPolygon(
 
 function palette(
   id: string,
-  guesses: Record<string, StateName>,
+  guesses: Record<string, string>,
   selectedId: string | null,
   scored: Record<string, boolean> | null,
   hoveredId: string | null,
