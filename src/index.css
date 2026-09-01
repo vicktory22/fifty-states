@@ -593,7 +593,8 @@ h1 {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.38);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 .lock-panel {
@@ -601,8 +602,9 @@ h1 {
   width: min(300px, 90vw);
   border: 1px solid var(--line-dim);
   border-radius: 18px;
-  background: rgba(8, 16, 13, 0.94);
+  background: color-mix(in srgb, var(--ink) 88%, var(--paper));
   padding: 1.15rem 1.15rem 0.9rem;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(12px);
 }
 
@@ -685,7 +687,7 @@ h1 {
 
 .lock-row:hover,
 .lock-row.is-active {
-  background: rgba(143, 217, 168, 0.14);
+  background: color-mix(in srgb, var(--line) 18%, transparent);
 }
 
 .lock-row.is-taken,
