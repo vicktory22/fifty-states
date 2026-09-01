@@ -5,6 +5,7 @@ export function applyThemeToDocument(theme: ThemeDefinition): void {
   const root = globalThis.document?.documentElement;
   if (!root) return;
   root.dataset.theme = theme.id;
+  root.style.colorScheme = theme.threeUiMode;
   const { css } = theme;
   root.style.setProperty("--ink", css.ink);
   root.style.setProperty("--panel", css.panel);
